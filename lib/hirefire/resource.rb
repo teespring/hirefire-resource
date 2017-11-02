@@ -21,6 +21,8 @@ module HireFire
     #
     def configure
       @dynos ||= []
+      retry_set
+      scheduled_set
       yield self
     end
 
@@ -31,6 +33,20 @@ module HireFire
     #
     def dyno(name, &block)
       @dynos << { :name => name, :quantity => block }
+    end
+
+    def scheduled_set
+      h = Hash.new { |hash, key| hash[key] = 0 }
+      $scheduled_set = Sidekiq::ScheduledSet.new.each_with_object(h) do |job, object|
+        object[job['queue']] += 1
+      end
+    end
+
+    def retry_set
+      h = Hash.new { |hash, key| hash[key] = 0 }
+      $retry_set = Sidekiq::RetrySet.new.each_with_object(h) do |job, object|
+        object[job['queue']] += 1
+      end
     end
   end
 end

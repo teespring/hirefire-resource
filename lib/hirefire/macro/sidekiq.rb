@@ -37,18 +37,14 @@ module HireFire
         end
 
         if !options[:skip_scheduled]
-          max = options[:max_scheduled]
-          in_schedule = ::Sidekiq::ScheduledSet.new.inject(0) do |memo, job|
-            memo += 1 if queues.include?(job["queue"]) && job.at <= Time.now
-            break memo if max && memo >= max
-            memo
+          in_schedule = queue.each_with_object(0) do |queue, sum|
+            sum += $scheduled_set[queue] || 0
           end
         end
 
         if !options[:skip_retries]
-          in_retry = ::Sidekiq::RetrySet.new.inject(0) do |memo, job|
-            memo += 1 if queues.include?(job["queue"]) && job.at <= Time.now
-            memo
+          in_retries = queue.each_with_object(0) do |queue, sum|
+            sum += $retry_set[queue] || 0
           end
         end
 
